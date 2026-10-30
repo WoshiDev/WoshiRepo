@@ -1,6 +1,6 @@
 [
   {
-    "Author": "Nivakin",
+    "Author": "WoshiDev",
     "Name": "Retainer Undercut",
     "InternalName": "RetainerUndercut",
     "AssemblyVersion": "0.1.0.0",
@@ -22,6 +22,6 @@
     "DownloadLinkInstall": "https://github.com/WoshiDev/WoshiRepo/releases/download/RetainerUndercut-0.1.0.0/latest.zip",
     "DownloadLinkUpdate": "https://github.com/WoshiDev/WoshiRepo/releases/download/RetainerUndercut-0.1.0.0/latest.zip",
     "DownloadLinkTesting": "https://github.com/WoshiDev/WoshiRepo/releases/download/RetainerUndercut-0.1.0.0/latest.zip",
-    "LastUpdate": 1793369853
+    "LastUpdate": 1793370656
   }
 ]
