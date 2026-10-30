@@ -1,32 +1,44 @@
-# Retainer Undercut
+# WoshiRepo
 
-A Dalamud plugin for FINAL FANTASY XIV that reprices every listing on the open retainer.
+Dalamud plugins for FINAL FANTASY XIV.
 
-For each listing it opens **Adjust Price → Compare Prices**, takes the undercut price that another plugin copies to the clipboard, and confirms the new price. It skips items where you already have the cheapest listing (HQ and NQ are compared separately), and reuses the price for repeat listings of the same item in one run.
-
-## Usage
-
-Open a retainer's sell list at a summoning bell, then:
-
-| Command | Does |
+| Plugin | Does |
 |---|---|
-| `/undercut` | Reprice every listing |
-| `/undercut dry` | Test run: goes through every item, changes nothing |
-| `/undercut stop` | Cancel |
-| `/undercut window` | Main window (Run / Dry run / Stop, results) |
-| `/undercut config` | Settings |
+| [Retainer Undercut](RetainerUndercut) | Reprices every listing on the open retainer (`/uc`) |
 
-Requires a separate plugin that copies the undercut price to the clipboard when the price comparison window opens.
+## Install
 
-## Building
+In game, open `/xlsettings` → Experimental, add this under Custom Plugin Repositories, and save:
 
-Needs the .NET SDK and XIVLauncher with Dalamud installed.
+```
+https://raw.githubusercontent.com/WoshiDev/WoshiRepo/main/repo.json
+```
+
+The plugins then show up in `/xlplugins`.
+
+## Development
+
+Each plugin is its own folder with a `.csproj` on `Dalamud.NET.Sdk`. Needs the .NET SDK and XIVLauncher with Dalamud installed.
 
 ```
 dotnet build RetainerUndercut -c Release
 ```
 
-Then add `RetainerUndercut\bin\Release\RetainerUndercut.dll` under `/xlsettings` → Experimental → Dev Plugin Locations.
+To test without publishing, add `<Plugin>\bin\Release\<Plugin>.dll` under `/xlsettings` → Experimental → Dev Plugin Locations.
+
+### Adding a plugin
+
+Copy an existing plugin folder as a starting point, rename the folder, `.csproj`, `.json` manifest and namespace, then add a row to the table above.
+
+### Publishing
+
+Bump `<Version>` in the plugin's `.csproj`, then:
+
+```
+.\publish.ps1 RetainerUndercut
+```
+
+It builds the plugin, uploads `latest.zip` as a GitHub release tagged `<Plugin>-<version>`, and updates and pushes `repo.json`. Needs the GitHub CLI (`gh`) signed in.
 
 ## Disclaimer
 

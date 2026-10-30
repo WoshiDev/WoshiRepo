@@ -2,7 +2,7 @@
   "Author": "Nivakin",
   "Name": "Retainer Undercut",
   "Punchline": "Reprices every listing on the open retainer.",
-  "Description": "Run /undercut with a retainer's sell list open. Uses the price another plugin copies to the clipboard from the price comparison window.",
+  "Description": "Run /uc with a retainer's sell list open. Undercuts the cheapest other seller of the same quality by a set amount.",
   "ApplicableVersion": "any",
   "Tags": ["retainer", "market"]
 }

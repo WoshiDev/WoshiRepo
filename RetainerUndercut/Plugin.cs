@@ -16,13 +16,14 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace RetainerUndercut;
 
-public sealed class Plugin : IDalamudPlugin
+public sealed partial class Plugin : IDalamudPlugin
 {
     [PluginService] private static IDalamudPluginInterface PluginInterface { get; set; } = null!;
     [PluginService] private static ICommandManager Commands { get; set; } = null!;
     [PluginService] private static IFramework Framework { get; set; } = null!;
     [PluginService] private static IChatGui Chat { get; set; } = null!;
     [PluginService] private static IPlayerState Player { get; set; } = null!;
+    [PluginService] private static IDataManager Data { get; set; } = null!;
 
     public static Configuration Config { get; private set; } = null!;
     // Lines from the latest run, shown in the main window. Lock it before reading or writing.
@@ -47,28 +48,29 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        Config.ItemDelayMs = Math.Clamp(Config.ItemDelayMs, 50, 2000); // saved value may predate the current range
 
-        mainWindow = new MainWindow(this) { Size = new(420, 300), SizeCondition = ImGuiCond.FirstUseEver };
+        mainWindow = new MainWindow(this) { Size = new(460, 480), SizeCondition = ImGuiCond.FirstUseEver };
         windows.AddWindow(mainWindow);
         windows.AddWindow(ConfigWindow);
         PluginInterface.UiBuilder.Draw += windows.Draw;
         PluginInterface.UiBuilder.OpenMainUi += mainWindow.Toggle;
         PluginInterface.UiBuilder.OpenConfigUi += ConfigWindow.Toggle;
 
-        Commands.AddHandler("/undercut", new CommandInfo(OnCommand)
+        Commands.AddHandler("/uc", new CommandInfo(OnCommand)
         {
-            HelpMessage = "Reprice all listings on the open retainer.\n" +
-                          "/undercut dry - test run, changes nothing\n" +
-                          "/undercut stop - cancel\n" +
-                          "/undercut window - open the main window\n" +
-                          "/undercut config - open settings",
+            HelpMessage = "Reprice all listings on the open retainer. List food & potions from the main window.\n" +
+                          "/uc dry - test run, changes nothing\n" +
+                          "/uc stop - cancel\n" +
+                          "/uc window - open the main window\n" +
+                          "/uc config - open settings",
         });
     }
 
     public void Dispose()
     {
         cts?.Cancel();
-        Commands.RemoveHandler("/undercut");
+        Commands.RemoveHandler("/uc");
         PluginInterface.UiBuilder.Draw -= windows.Draw;
         PluginInterface.UiBuilder.OpenMainUi -= mainWindow.Toggle;
         PluginInterface.UiBuilder.OpenConfigUi -= ConfigWindow.Toggle;
@@ -91,7 +93,10 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Stop() => cts?.Cancel();
 
-    public void Start(bool dryRun)
+    public void Start(bool dryRun) => StartJob(token => Run(dryRun, token));
+
+    // Runs one job (repricing or listing) in the background. Only one can run at a time.
+    private void StartJob(Func<CancellationToken, Task> job)
     {
         if (IsRunning) { Chat.Print("[Undercut] Already running."); return; }
 
@@ -100,7 +105,7 @@ public sealed class Plugin : IDalamudPlugin
         var token = cts.Token;
         Task.Run(async () =>
         {
-            try { await Run(dryRun, token); }
+            try { await job(token); }
             catch (OperationCanceledException) { Log("Stopped."); }
             catch (Exception e)
             {
@@ -145,23 +150,23 @@ public sealed class Plugin : IDalamudPlugin
             if (reused)
             {
                 newPrice = known[key!.Value];
-                skip = newPrice >= current ? $"same item as earlier, {newPrice:N0} isn't lower" : null;
+                skip = newPrice == current ? $"same item as earlier, already at {newPrice:N0}" : null;
             }
             else
             {
-                await Framework.RunOnFrameworkThread(() =>
-                {
-                    ImGui.SetClipboardText("");
-                    Fire("RetainerSell", SellComparePrices);
-                });
-                newPrice = await WaitForClipboardPrice(token);
-                skip = await Framework.RunOnFrameworkThread(() => SkipReason(slot, current, newPrice));
+                await Framework.RunOnFrameworkThread(() => Fire("RetainerSell", SellComparePrices));
+                if (key is not { } item)
+                    (newPrice, skip) = (null, "couldn't identify this item");
+                else if (await WaitForListings(item.ItemId, token) is { } state)
+                    (newPrice, skip) = (null, $"market data didn't load: {state}");
+                else
+                    (newPrice, skip) = await Framework.RunOnFrameworkThread(() => Decide(item, current));
                 await Framework.RunOnFrameworkThread(() =>
                 {
                     Close("ItemSearchResult");
                     Close("ItemHistory");
                 });
-                if (skip == null && key != null) known[key.Value] = newPrice!.Value;
+                if (newPrice is { } target && key is { } seen) known[seen] = target;
             }
             await Task.Delay(StepDelay, token);
 
@@ -189,31 +194,60 @@ public sealed class Plugin : IDalamudPlugin
         Log("Done.");
     }
 
-    // Why this item should keep its current price, or null to go ahead with newPrice.
-    private static unsafe string? SkipReason(int listIndex, int current, int? newPrice)
+    // Works out the new price from the price comparison listings: the cheapest other seller of the
+    // same quality, minus the undercut amount. Moves the price up as well as down, and ignores your own
+    // listings so you never undercut yourself. Skip is why to keep the current price instead (null = go ahead).
+    private static (int? Price, string? Skip) Decide((uint ItemId, bool Hq) item, int current)
     {
-        if (newPrice is not { } price) return "no suggested price";
-        var item = ListedItem(listIndex);
-        var search = InfoProxyItemSearch.Instance();
-        if (item == null || search->SearchItemId != item->GetBaseItemId())
-            return "couldn't match this item to the price comparison";
-        if (Config.SkipIfCheapest && AlreadyCheapest(search, item->IsHighQuality())) return "you already have the cheapest listing";
-        if (price >= current) return $"suggested {price:N0} isn't lower";
-        return null;
+        var (_, others) = CheapestPrices(item.ItemId, item.Hq);
+        if (others == uint.MaxValue) return (null, "no other sellers");
+        var price = Math.Max(1, (int)others - Config.UndercutAmount);
+        if (price == current) return (price, "already there");
+        return (price, null);
     }
 
-    // True if your cheapest listing of this quality beats everyone else's. A tie counts as not cheapest.
-    private static unsafe bool AlreadyCheapest(InfoProxyItemSearch* search, bool hq)
+    // Cheapest unit price of this quality in the loaded price comparison: yours, and everyone else's.
+    // uint.MaxValue means none.
+    private static unsafe (uint Mine, uint Others) CheapestPrices(uint itemId, bool hq)
     {
+        var search = InfoProxyItemSearch.Instance();
         var me = Player.ContentId;
         uint mine = uint.MaxValue, others = uint.MaxValue;
         foreach (ref readonly var l in search->Listings[..Math.Min((int)search->ListingCount, search->Listings.Length)])
         {
-            if (l.IsHqItem != hq) continue;
+            // Slots that haven't been filled in yet read as price 0 with no seller.
+            if (l.ItemId != itemId || l.UnitPrice == 0 || l.IsHqItem != hq) continue;
             if (l.ContentId == me) mine = Math.Min(mine, l.UnitPrice);
             else others = Math.Min(others, l.UnitPrice);
         }
-        return mine < others;
+        return (mine, others);
+    }
+
+    private static unsafe bool ListingsLoaded(uint itemId)
+    {
+        var search = InfoProxyItemSearch.Instance();
+        // Wait for a real listing, not just the item ID: the prices arrive after it.
+        return IsReady("ItemSearchResult") && search->ListingCount > 0 &&
+               search->Listings[0].ItemId == itemId && search->Listings[0].UnitPrice > 0;
+    }
+
+    // What the game's market data looked like, for the error message when it never loads.
+    private static unsafe string ListingsState(uint itemId)
+    {
+        var search = InfoProxyItemSearch.Instance();
+        return $"window open {IsReady("ItemSearchResult")}, expected item {itemId}, search item {search->SearchItemId}, " +
+               $"first listing item {search->Listings[0].ItemId}, listings {search->ListingCount}, waiting {search->WaitingForListings}";
+    }
+
+    // Waits for the market board to send this item's listings. Null once they're in, otherwise what the game showed.
+    private static async Task<string?> WaitForListings(uint itemId, CancellationToken token)
+    {
+        for (var waited = 0; waited < Config.PriceWaitSeconds * 1000; waited += 200)
+        {
+            await Task.Delay(200, token);
+            if (await Framework.RunOnFrameworkThread(() => ListingsLoaded(itemId))) return null;
+        }
+        return await Framework.RunOnFrameworkThread(() => ListingsState(itemId));
     }
 
     private static unsafe (uint ItemId, bool Hq)? ItemKey(int listIndex)
@@ -288,24 +322,5 @@ public sealed class Plugin : IDalamudPlugin
             await Task.Delay(100, token);
         }
         throw new TimeoutException($"Timed out waiting for {name}.");
-    }
-
-    // Waits for the other plugin to put the undercut price on the clipboard. Null if it never shows up.
-    private static async Task<int?> WaitForClipboardPrice(CancellationToken token)
-    {
-        for (var waited = 0; waited < Config.PriceWaitSeconds * 1000; waited += 200)
-        {
-            await Task.Delay(200, token);
-            var text = await Framework.RunOnFrameworkThread(ImGui.GetClipboardText);
-            if (ParsePrice(text) is { } price) return price;
-        }
-        return null;
-    }
-
-    // "12,345" / "12.345" / "12345 gil" -> 12345
-    internal static int? ParsePrice(string? text)
-    {
-        var digits = new string((text ?? "").Where(char.IsAsciiDigit).ToArray());
-        return int.TryParse(digits, out var p) && p > 0 ? p : null;
     }
 }
