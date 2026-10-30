@@ -1,5 +1,5 @@
 {
-  "Author": "Nivakin",
+  "Author": "WoshiDev",
   "Name": "Retainer Undercut",
   "Punchline": "Reprices every listing on the open retainer.",
   "Description": "Run /uc with a retainer's sell list open. Undercuts the cheapest other seller of the same quality by a set amount.",
