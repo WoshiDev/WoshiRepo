@@ -30,4 +30,5 @@ ConvertTo-Json -InputObject @($entries | Sort-Object InternalName) -Depth 5 | Se
 
 git add repo.json
 git commit -m "Publish $tag"
-git push
+# Push with gh's login so this works without a separate git sign-in.
+git -c credential.helper= -c "credential.helper=!gh auth git-credential" push
