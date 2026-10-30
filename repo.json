@@ -1,1 +1,27 @@
-[]
+[
+  {
+    "Author": "Nivakin",
+    "Name": "Retainer Undercut",
+    "InternalName": "RetainerUndercut",
+    "AssemblyVersion": "0.1.0.0",
+    "Description": "Run /uc with a retainer's sell list open. Undercuts the cheapest other seller of the same quality by a set amount.",
+    "ApplicableVersion": "any",
+    "Tags": [
+      "retainer",
+      "market"
+    ],
+    "DalamudApiLevel": 15,
+    "LoadRequiredState": 0,
+    "LoadSync": false,
+    "CanUnloadAsync": false,
+    "LoadPriority": 0,
+    "Punchline": "Reprices every listing on the open retainer.",
+    "AcceptsFeedback": true,
+    "RepoUrl": "https://github.com/WoshiDev/WoshiRepo/tree/main/RetainerUndercut",
+    "IconUrl": "https://raw.githubusercontent.com/WoshiDev/WoshiRepo/main/RetainerUndercut/images/icon.png",
+    "DownloadLinkInstall": "https://github.com/WoshiDev/WoshiRepo/releases/download/RetainerUndercut-0.1.0.0/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/WoshiDev/WoshiRepo/releases/download/RetainerUndercut-0.1.0.0/latest.zip",
+    "DownloadLinkTesting": "https://github.com/WoshiDev/WoshiRepo/releases/download/RetainerUndercut-0.1.0.0/latest.zip",
+    "LastUpdate": 1793369853
+  }
+]
