@@ -5,6 +5,7 @@ Dalamud plugins for FINAL FANTASY XIV.
 | Plugin | Does |
 |---|---|
 | [Retainer Undercut](RetainerUndercut) | Reprices every listing on the open retainer (`/uc`) |
+| [Sub Salvage](SubSalvage) | Vendor-sells submarine loot, keeping 1 of each item (`/salvage`). Not published yet |
 
 ## Install
 

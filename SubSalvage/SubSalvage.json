@@ -1,0 +1,8 @@
+{
+  "Author": "WoshiDev",
+  "Name": "Sub Salvage",
+  "Punchline": "Vendor-sells submarine loot, keeping 1 of each item.",
+  "Description": "Run /salvage with a merchant's shop or a retainer open. Sells the Salvaged accessories and any items you add to its list, leaving 1 of each in your bags.",
+  "ApplicableVersion": "any",
+  "Tags": ["submarine", "inventory", "vendor"]
+}
