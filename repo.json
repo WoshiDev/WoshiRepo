@@ -23,5 +23,31 @@
     "DownloadLinkUpdate": "https://github.com/WoshiDev/WoshiRepo/releases/download/RetainerUndercut-0.1.0.0/latest.zip",
     "DownloadLinkTesting": "https://github.com/WoshiDev/WoshiRepo/releases/download/RetainerUndercut-0.1.0.0/latest.zip",
     "LastUpdate": 1793370656
+  },
+  {
+    "Author": "WoshiDev",
+    "Name": "Sub Salvage",
+    "InternalName": "SubSalvage",
+    "AssemblyVersion": "0.1.0.0",
+    "Description": "Run /salvage with a merchant's shop or a retainer open. Sells the Salvaged accessories, the MOJ/OJ gems and ingots, and any items you add to its list, leaving 1 of each (NQ and HQ) in your bags.",
+    "ApplicableVersion": "any",
+    "Tags": [
+      "submarine",
+      "inventory",
+      "vendor"
+    ],
+    "DalamudApiLevel": 15,
+    "LoadRequiredState": 0,
+    "LoadSync": false,
+    "CanUnloadAsync": false,
+    "LoadPriority": 0,
+    "Punchline": "Vendor-sells submarine loot, keeping 1 of each item.",
+    "AcceptsFeedback": true,
+    "RepoUrl": "https://github.com/WoshiDev/WoshiRepo/tree/main/SubSalvage",
+    "IconUrl": "https://raw.githubusercontent.com/WoshiDev/WoshiRepo/main/SubSalvage/images/icon.png",
+    "DownloadLinkInstall": "https://github.com/WoshiDev/WoshiRepo/releases/download/SubSalvage-0.1.0.0/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/WoshiDev/WoshiRepo/releases/download/SubSalvage-0.1.0.0/latest.zip",
+    "DownloadLinkTesting": "https://github.com/WoshiDev/WoshiRepo/releases/download/SubSalvage-0.1.0.0/latest.zip",
+    "LastUpdate": 1794378312
   }
 ]
